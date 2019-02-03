@@ -6,6 +6,7 @@
 */
 #include "car.h"
 #include "stopSign.h"
+#include <pthread.h>
 
 /**
 * @brief Structure that you can modify as part of your solution to implement
@@ -26,6 +27,22 @@ typedef struct _SafeStopSign {
 	StopSign base;
 
 	// TODO: Add any members you need for synchronization here.
+	// Record whether the quadrant is occupied. 1 denote occupied, 0 otherwist.
+	int occupy[QUADRANT_COUNT];
+	//Mutex to protext the occupy array
+	pthread_mutex_t occupy_lock;
+	//Mutexes used to synchronize the cars enter the lanes
+	pthread_mutex_t lane_lock[DIRECTION_COUNT];
+	//Mutexes used to enter the stop sign from different direction
+	pthread_mutex_t enter_lock[DIRECTION_COUNT];
+	pthread_cond_t wait_cond;
+
+	//Count the number of cars enter from every direction
+	int enter_count[DIRECTION_COUNT];
+	int exit_count[DIRECTION_COUNT];
+	//Conditional variable for cars to exit stop sign in order
+	pthread_cond_t exit_cond[DIRECTION_COUNT];
+
 
 } SafeStopSign;
 
