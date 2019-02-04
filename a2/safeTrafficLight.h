@@ -38,6 +38,8 @@ typedef struct _SafeTrafficLight {
 	pthread_cond_t left_cond2;
 	pthread_mutex_t left_lock2;
 
+	pthread_mutex_t move_lock[TRAFFIC_LIGHT_LANE_COUNT];
+
 	int enter_count[TRAFFIC_LIGHT_LANE_COUNT];
 	int exit_count[TRAFFIC_LIGHT_LANE_COUNT];
 	//Conditional variable for cars to exit the traffic light in order

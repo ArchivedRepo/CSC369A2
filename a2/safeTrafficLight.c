@@ -49,6 +49,7 @@ void initSafeTrafficLight(SafeTrafficLight* light, int horizontal, int vertical)
 		initConditionVariable(&light->exit_cond[i]);
 		initMutex(&light->lane_lock[i]);
 		initMutex(&light->enter_lock[i]);
+		initMutex(&light->move_lock[i]);
 	}
 	initConditionVariable(&light->left_cond1);
 	initConditionVariable(&light->left_cond2);
@@ -65,6 +66,7 @@ void destroySafeTrafficLight(SafeTrafficLight* light) {
 		cond_destroy(&light->exit_cond[i]);
 		mutex_destroy(&light->lane_lock[i]);
 		mutex_destroy(&light->enter_lock[i]);
+		mutex_destroy(&light->move_lock[i]);
 	}
 	cond_destroy(&light->left_cond1);
 	cond_destroy(&light->left_cond2);
@@ -96,14 +98,18 @@ void runTrafficLightCar(Car* car, SafeTrafficLight* light) {
 	pthread_mutex_t *this_lock;
 	pthread_cond_t *this_cond;
 	if (car->action == RIGHT_TURN) {
+		lock(&light->move_lock[lane_index]);
 		actTrafficLight(car, &light->base, NULL, NULL, NULL);
+		unlock(&light->move_lock[lane_index]);
 	} else if (car->action == STRAIGHT){
+		lock(&light->move_lock[lane_index]);
 		actTrafficLight(car, &light->base, NULL, NULL, NULL);
 		if (car->position == NORTH || car->position == EAST) {
 			cond_broadcast(&light->left_cond2);
 		} else {
 			cond_broadcast(&light->left_cond1);
 		}
+		unlock(&light->move_lock[lane_index]);
 	} else {
 		if (car->position == NORTH || car->position == EAST) {
 			this_lock = &light->left_lock1;
