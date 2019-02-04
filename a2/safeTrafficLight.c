@@ -10,6 +10,7 @@ void initSafeTrafficLight(SafeTrafficLight* light, int horizontal, int vertical)
 	initTrafficLight(&light->base, horizontal, vertical);
 
 	// TODO: Add any initialization logic you need.
+	
 }
 
 void destroySafeTrafficLight(SafeTrafficLight* light) {
