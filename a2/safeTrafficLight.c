@@ -56,6 +56,7 @@ void initSafeTrafficLight(SafeTrafficLight* light, int horizontal, int vertical)
 	initConditionVariable(&light->light_cond);
 	initMutex(&light->left_lock1);
 	initMutex(&light->left_lock2);
+	initMutex(&light->check_light_lock);
 }
 
 void destroySafeTrafficLight(SafeTrafficLight* light) {
@@ -73,6 +74,7 @@ void destroySafeTrafficLight(SafeTrafficLight* light) {
 	cond_destroy(&light->light_cond);
 	mutex_destroy(&light->left_lock1);
 	mutex_destroy(&light->left_lock2);
+	mutex_destroy(&light->check_light_lock);
 }
 
 void runTrafficLightCar(Car* car, SafeTrafficLight* light) {
@@ -89,6 +91,7 @@ void runTrafficLightCar(Car* car, SafeTrafficLight* light) {
 	// Enter and act are separate calls because a car turning left can first
 	// enter the intersection before it needs to check for oncoming traffic.
 	lock(&light->enter_lock[lane_index]);
+	//TODO: is this okay? This is causing deadlock?
 	while (can_go(car, getLightState(&light->base)) == 0) {
 		cond_wait(&light->light_cond, &light->enter_lock[lane_index]);
 	}

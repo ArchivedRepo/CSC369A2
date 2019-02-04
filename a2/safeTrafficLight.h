@@ -39,6 +39,7 @@ typedef struct _SafeTrafficLight {
 	pthread_mutex_t left_lock2;
 
 	pthread_mutex_t move_lock[TRAFFIC_LIGHT_LANE_COUNT];
+	pthread_mutex_t check_light_lock;
 
 	int enter_count[TRAFFIC_LIGHT_LANE_COUNT];
 	int exit_count[TRAFFIC_LIGHT_LANE_COUNT];
