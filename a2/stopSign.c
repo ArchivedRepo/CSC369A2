@@ -72,9 +72,9 @@ void goThroughStopSign(Car* car, StopSign* intersection) {
 				"@ " __FILE__ " : " LINE_STRING "\n");
 	}
 	for (int i = 0; i < quadrantCount; i++) {
-		IntersectionQuad* quad = &intersection->quadrants[quadrants[i]];
-		int token = quad->tokenCounter;
-		initToken(&quad->tokens[car->index], car, token);
+        IntersectionQuad* quad = &intersection->quadrants[quadrants[i]];
+        int token = quad->tokenCounter;
+        initToken(&quad->tokens[car->index], car, token);
 	}
 	nap(1000);
    	for (int i = 0; i < quadrantCount; i++) {
