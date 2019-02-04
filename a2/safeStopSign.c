@@ -6,6 +6,7 @@
 */
 #include "safeStopSign.h"
 #include "common.h"
+#include "helpers.h"
 
 /*
  * Return whether the path is okay to go. Return 1 on okay, 0 otherwise.
@@ -17,41 +18,6 @@ static int can_pass(int *path, int length, int *occupy) {
 		} 
 	}
 	return 1;
-}
-
-static void lock(pthread_mutex_t *lock) {
-	if (pthread_mutex_lock(lock) != 0) {
-		perror("pthread_mutex_lock");
-		exit(1);
-	}
-}
-
-static void cond_wait(pthread_cond_t *cond, pthread_mutex_t *lock) {
-	if (pthread_cond_wait(cond, lock) != 0) {
-		perror("pthread_cond_wait");
-		exit(1);
-	}
-}
-
-static void cond_destroy(pthread_cond_t *cond) {
-	if (pthread_cond_destroy(cond) != 0) {
-		perror("Destroy Conditional Variable");
-		exit(1);
-	}
-}
-
-static void mutex_destroy(pthread_mutex_t *lock) {
-	if (pthread_mutex_destroy(lock) != 0) {
-		perror("pthread_mutex_destroy");
-		exit(1);
-	}
-}
-
-static void cond_broadcast(pthread_cond_t *cond) {
-	if (pthread_cond_broadcast(cond) != 0) {
-		perror("pthread_cond_broadcase");
-		exit(1);
-	}
 }
 
 void initSafeStopSign(SafeStopSign* sign, int count) {
