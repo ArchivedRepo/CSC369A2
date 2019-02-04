@@ -70,8 +70,6 @@ void initSafeStopSign(SafeStopSign* sign, int count) {
 	for (int i = 0; i < QUADRANT_COUNT; i++) {
 		sign->occupy[i] = 0;
 	}
-
-	initMutex(&sign->passing_mutex);
 }
 
 void destroySafeStopSign(SafeStopSign* sign) {
@@ -85,8 +83,6 @@ void destroySafeStopSign(SafeStopSign* sign) {
 	}
 	cond_destroy(&sign->wait_cond);
 	mutex_destroy(&sign->occupy_lock);
-
-	mutex_destroy(&sign->passing_mutex);
 }
 
 void runStopSignCar(Car* car, SafeStopSign* sign) {
@@ -112,9 +108,7 @@ void runStopSignCar(Car* car, SafeStopSign* sign) {
 		sign->occupy[path[i]] = 1;
 	}
 	unlock(&sign->occupy_lock);
-	lock(&sign->passing_mutex);
 	goThroughStopSign(car, &sign->base);
-	unlock(&sign->passing_mutex);
 	lock(&sign->occupy_lock);
 	for (int i = 0; i<length; i++) {
 		sign->occupy[path[i]] = 0;

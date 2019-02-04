@@ -43,9 +43,6 @@ typedef struct _SafeStopSign {
 	//Conditional variable for cars to exit stop sign in order
 	pthread_cond_t exit_cond[DIRECTION_COUNT];
 
-	pthread_mutex_t passing_mutex;
-
-
 } SafeStopSign;
 
 /**
