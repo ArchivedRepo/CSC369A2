@@ -26,6 +26,14 @@ typedef struct _SafeTrafficLight {
 	TrafficLight base;
 
 	// TODO: Add any members you need for synchronization here.
+	pthread_mutex_t laneLock[TRAFFIC_LIGHT_LANE_COUNT];
+	pthread_cond_t exitCond[TRAFFIC_LIGHT_LANE_COUNT];
+	int enterCount[TRAFFIC_LIGHT_LANE_COUNT];
+	int exitCount[TRAFFIC_LIGHT_LANE_COUNT];
+
+	pthread_mutex_t lightLock;
+	pthread_cond_t lightCond;
+	pthread_cond_t leftCond;
 
 } SafeTrafficLight;
 
