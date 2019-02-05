@@ -30,18 +30,18 @@ typedef struct _SafeStopSign {
 	// Record whether the quadrant is occupied. 1 denote occupied, 0 otherwist.
 	int occupy[QUADRANT_COUNT];
 	//Mutex to protext the occupy array
-	pthread_mutex_t occupy_lock;
+	pthread_mutex_t occupyLock;
 	//Mutexes used to synchronize the cars enter the lanes
-	pthread_mutex_t lane_lock[DIRECTION_COUNT];
+	pthread_mutex_t laneLock[DIRECTION_COUNT];
 	//Mutexes used to enter the stop sign from different direction
-	pthread_mutex_t enter_lock[DIRECTION_COUNT];
-	pthread_cond_t wait_cond;
+	pthread_mutex_t enterLock[DIRECTION_COUNT];
+	pthread_cond_t waitCond;
 
 	//Count the number of cars enter from every direction
-	int enter_count[DIRECTION_COUNT];
-	int exit_count[DIRECTION_COUNT];
+	int enterCount[DIRECTION_COUNT];
+	int exitCount[DIRECTION_COUNT];
 	//Conditional variable for cars to exit stop sign in order
-	pthread_cond_t exit_cond[DIRECTION_COUNT];
+	pthread_cond_t exitCond[DIRECTION_COUNT];
 
 } SafeStopSign;
 

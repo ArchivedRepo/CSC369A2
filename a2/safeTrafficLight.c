@@ -11,7 +11,7 @@
  * Return whether the car can go in the given light state.
  * Return 1 on can go, 0 otherwise
  */  
-static int can_go(Car* car, LightState state) {
+static int canGo(Car* car, LightState state) {
 	CarPosition pos = car->position;
 	if (pos == NORTH || pos == SOUTH) {
 		if (state == NORTH_SOUTH) {
@@ -39,11 +39,11 @@ static CarPosition get_oppo_pos(Car* car) {
 	assert(FALSE);
 }
 
-void before_sleep(void* lock_ptr) {
+void beforeSleep(void* lock_ptr) {
 	unlock((pthread_mutex_t*)lock_ptr);
 }
 
-void after_sleep(void* lock_ptr) {
+void afterSleep(void* lock_ptr) {
 	lock((pthread_mutex_t*) lock_ptr);
 }
 
@@ -52,14 +52,14 @@ void initSafeTrafficLight(SafeTrafficLight* light, int horizontal, int vertical)
 
 	// TODO: Add any initialization logic you need.
 	for (int i =0;i< TRAFFIC_LIGHT_LANE_COUNT;i++) {
-		initMutex(&light->lane_lock[i]);
-		initConditionVariable(&light->exit_cond[i]);
-		light->enter_count[i] = 0;
-		light->exit_count[i] = 0;
+		initMutex(&light->laneLock[i]);
+		initConditionVariable(&light->exitCond[i]);
+		light->enterCount[i] = 0;
+		light->exitCount[i] = 0;
 	}
-	initMutex(&light->light_lock);
-	initConditionVariable(&light->light_cond);
-	initConditionVariable(&light->left_cond);
+	initMutex(&light->lightLock);
+	initConditionVariable(&light->lightCond);
+	initConditionVariable(&light->leftCond);
 }
 
 void destroySafeTrafficLight(SafeTrafficLight* light) {
@@ -67,55 +67,55 @@ void destroySafeTrafficLight(SafeTrafficLight* light) {
 
 	// TODO: Add any logic you need to free data structures
 	for (int i = 0; i< TRAFFIC_LIGHT_LANE_COUNT;i++) {
-		initMutex(&light->lane_lock[i]);
-		initConditionVariable(&light->exit_cond[i]);
+		initMutex(&light->laneLock[i]);
+		initConditionVariable(&light->exitCond[i]);
 	}
-	mutex_destroy(&light->light_lock);
-	cond_destroy(&light->light_cond);
-	cond_destroy(&light->left_cond);
+	mutexDestroy(&light->lightLock);
+	condDestroy(&light->lightCond);
+	condDestroy(&light->leftCond);
 }
 
 void runTrafficLightCar(Car* car, SafeTrafficLight* light) {
 
 	// TODO: Add your synchronization logic to this function.
 	int lane_index = getLaneIndexLight(car);
-	lock(&light->lane_lock[lane_index]);
+	lock(&light->laneLock[lane_index]);
 	EntryLane* lane = getLaneLight(car, &light->base);
 	enterLane(car, lane);
-	int index = light->enter_count[lane_index];
-	light->enter_count[lane_index]++;
-	unlock(&light->lane_lock[lane_index]);
+	int index = light->enterCount[lane_index];
+	light->enterCount[lane_index]++;
+	unlock(&light->laneLock[lane_index]);
 
 	// Enter and act are separate calls because a car turning left can first
 	// enter the intersection before it needs to check for oncoming traffic.
-	lock(&light->light_lock);
-	while (can_go(car, getLightState(&light->base)) == 0) {
-		cond_wait(&light->light_cond, &light->light_lock);
+	lock(&light->lightLock);
+	while (canGo(car, getLightState(&light->base)) == 0) {
+		condWait(&light->lightCond, &light->lightLock);
 	}
 	enterTrafficLight(car, &light->base);
 	if (car->action == STRAIGHT || car->action == RIGHT_TURN) {
-		actTrafficLight(car, &light->base, before_sleep, after_sleep, 
-		(void*)&light->light_lock);
+		actTrafficLight(car, &light->base, beforeSleep, afterSleep, 
+		(void*)&light->lightLock);
 		// actTrafficLight(car, &light->base, NULL, NULL, NULL);
-		cond_broadcast(&light->left_cond);
+		condBroadcast(&light->leftCond);
 	} else {
 		while (getStraightCount(&light->base, get_oppo_pos(car)) != 0) {
-			cond_wait(&light->left_cond, &light->light_lock);
+			condWait(&light->leftCond, &light->lightLock);
 		}
-		actTrafficLight(car, &light->base, before_sleep, after_sleep
-		, (void*)&light->light_lock);
+		actTrafficLight(car, &light->base, beforeSleep, afterSleep
+		, (void*)&light->lightLock);
 		// actTrafficLight(car, &light->base, NULL, NULL, NULL);
 	}
-	cond_broadcast(&light->light_cond);
-	unlock(&light->light_lock);
+	condBroadcast(&light->lightCond);
+	unlock(&light->lightLock);
 
-	lock(&light->lane_lock[lane_index]);
-	while (light->exit_count[lane_index] != index) {
-		cond_wait(&light->exit_cond[lane_index], &light->lane_lock[lane_index]);
+	lock(&light->laneLock[lane_index]);
+	while (light->exitCount[lane_index] != index) {
+		condWait(&light->exitCond[lane_index], &light->laneLock[lane_index]);
 	}
 	exitIntersection(car, lane);
-	light->exit_count[lane_index]++;
-	cond_broadcast(&light->exit_cond[lane_index]);
-	unlock(&light->lane_lock[lane_index]);
+	light->exitCount[lane_index]++;
+	condBroadcast(&light->exitCond[lane_index]);
+	unlock(&light->laneLock[lane_index]);
 
 }
