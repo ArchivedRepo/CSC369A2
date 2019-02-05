@@ -26,25 +26,6 @@ typedef struct _SafeTrafficLight {
 	TrafficLight base;
 
 	// TODO: Add any members you need for synchronization here.
-	//Mutexes used to synchronize the cars enter the lanes
-	pthread_mutex_t lane_lock[TRAFFIC_LIGHT_LANE_COUNT];
-	//Mutexes used to enter the traffic from different lanes
-	pthread_mutex_t enter_lock[TRAFFIC_LIGHT_LANE_COUNT];
-	pthread_cond_t light_cond;
-	// First should be used for left turn from N or E
-	pthread_cond_t left_cond1;
-	pthread_mutex_t left_lock1;
-	// Second should be used for left turn from S or W
-	pthread_cond_t left_cond2;
-	pthread_mutex_t left_lock2;
-
-	pthread_mutex_t move_lock[TRAFFIC_LIGHT_LANE_COUNT];
-	pthread_mutex_t check_light_lock;
-
-	int enter_count[TRAFFIC_LIGHT_LANE_COUNT];
-	int exit_count[TRAFFIC_LIGHT_LANE_COUNT];
-	//Conditional variable for cars to exit the traffic light in order
-	pthread_cond_t exit_cond[TRAFFIC_LIGHT_LANE_COUNT];
 
 } SafeTrafficLight;
 
