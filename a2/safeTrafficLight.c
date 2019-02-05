@@ -40,11 +40,11 @@ static CarPosition get_oppo_pos(Car* car) {
 }
 
 void before_sleep(void* lock_ptr) {
-	unlock((pthread_mutex_t*)lock);
+	unlock((pthread_mutex_t*)lock_ptr);
 }
 
 void after_sleep(void* lock_ptr) {
-	lock((pthread_mutex_t*) lock);
+	lock((pthread_mutex_t*) lock_ptr);
 }
 
 void initSafeTrafficLight(SafeTrafficLight* light, int horizontal, int vertical) {
@@ -96,6 +96,7 @@ void runTrafficLightCar(Car* car, SafeTrafficLight* light) {
 	if (car->action == STRAIGHT || car->action == RIGHT_TURN) {
 		actTrafficLight(car, &light->base, before_sleep, after_sleep, 
 		(void*)&light->light_lock);
+		// actTrafficLight(car, &light->base, NULL, NULL, NULL);
 		cond_broadcast(&light->left_cond);
 	} else {
 		while (getStraightCount(&light->base, get_oppo_pos(car)) != 0) {
@@ -103,6 +104,7 @@ void runTrafficLightCar(Car* car, SafeTrafficLight* light) {
 		}
 		actTrafficLight(car, &light->base, before_sleep, after_sleep
 		, (void*)&light->light_lock);
+		// actTrafficLight(car, &light->base, NULL, NULL, NULL);
 	}
 	cond_broadcast(&light->light_cond);
 	unlock(&light->light_lock);
