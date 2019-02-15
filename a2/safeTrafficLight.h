@@ -26,15 +26,20 @@ typedef struct _SafeTrafficLight {
 	TrafficLight base;
 
 	// TODO: Add any members you need for synchronization here.
-	pthread_mutex_t laneLock[TRAFFIC_LIGHT_LANE_COUNT];
-	pthread_cond_t exitCond[TRAFFIC_LIGHT_LANE_COUNT];
+
+	// for enter/exit lanes
 	int enterCount[TRAFFIC_LIGHT_LANE_COUNT];
 	int exitCount[TRAFFIC_LIGHT_LANE_COUNT];
+	pthread_mutex_t laneLock[TRAFFIC_LIGHT_LANE_COUNT];
+	pthread_cond_t laneCond[TRAFFIC_LIGHT_LANE_COUNT];
 
-	pthread_mutex_t lightLock;
-	pthread_cond_t lightCond;
-	pthread_cond_t leftCond;
+	// for general status of light
+	pthread_mutex_t stateLock;
+	pthread_cond_t stateCond;
 
+	// for left-turning cars
+	pthread_cond_t leftTurnCond;
+	
 } SafeTrafficLight;
 
 /**
@@ -60,3 +65,18 @@ void destroySafeTrafficLight(SafeTrafficLight* light);
 * @param light pointer to the traffic light intersection.
 */
 void runTrafficLightCar(Car* car, SafeTrafficLight* light);
+
+
+/**
+* @brief Callback function before user sleeps.
+*
+* @param mutex pointer for the mutex to be unlocked.
+*/
+void beforeSleep(void* stateLock);
+
+/**
+* @brief Callback function after user sleeps.
+*
+* @param mutex pointer for the mutex to be locked.
+*/
+void afterSleep(void* stateLock);

@@ -5,90 +5,98 @@
 * submission code.
 */
 #include "safeStopSign.h"
-#include "common.h"
 #include "helpers.h"
 
-/*
- * Return whether the path is okay to go. Return 1 on okay, 0 otherwise.
- */ 
-static int canPass(int *path, int length, int *occupy) {
-	for (int i =0; i< length; i++) {
-		if (occupy[path[i]] == 1 ) {
-			return 0;
-		} 
+
+int check_road_clear(int *quadrants, int quadrantCount, SafeStopSign* sign){
+	
+	for(int i=0; i<quadrantCount; i++){
+		if(sign->quadCount[quadrants[i]] != 0){
+			return 1;
+		}
 	}
-	return 1;
+	return 0;
 }
 
 void initSafeStopSign(SafeStopSign* sign, int count) {
 	initStopSign(&sign->base, count);
 
 	// TODO: Add any initialization logic you need.
-	for (int i = 0; i < DIRECTION_COUNT; i++) {
-		initMutex(&sign->enterLock[i]);
+	// Initialize mutexes and cond variables for enter/exit lanes
+	for(int i=0; i<DIRECTION_COUNT; i++){
 		initMutex(&sign->laneLock[i]);
+		initConditionVariable(&sign->laneCond[i]);
 		sign->enterCount[i] = 0;
 		sign->exitCount[i] = 0;
-		initConditionVariable(&sign->exitCond[i]);
 	}
-	initConditionVariable(&sign->waitCond);
-	initMutex(&sign->occupyLock);
+	
+	// Initialize mutexes and cond variables for moving aross quadrants
+	initMutex(&sign->quadLock);
+	initConditionVariable(&sign->quadCond);
 	for (int i = 0; i < QUADRANT_COUNT; i++) {
-		sign->occupy[i] = 0;
+		sign->quadCount[i] = 0;
 	}
+	
 }
 
 void destroySafeStopSign(SafeStopSign* sign) {
 	destroyStopSign(&sign->base);
 
 	// TODO: Add any logic you need to clean up data structures.
-	for (int i =0; i < DIRECTION_COUNT; i++) {
-		mutexDestroy(&sign->enterLock[i]);
+	for(int i=0; i<DIRECTION_COUNT; i++){
 		mutexDestroy(&sign->laneLock[i]);
-		condDestroy(&sign->exitCond[i]);
+		condDestroy(&sign->laneCond[i]);
 	}
-	condDestroy(&sign->waitCond);
-	mutexDestroy(&sign->occupyLock);
+	mutexDestroy(&sign->quadLock);
+	condDestroy(&sign->quadCond);
 }
 
 void runStopSignCar(Car* car, SafeStopSign* sign) {
 
 	// TODO: Add your synchronization logic to this function.
-	int lane_index = getLaneIndex(car);
-	lock(&sign->laneLock[lane_index]);
+
 	EntryLane* lane = getLane(car, &sign->base);
+	int laneIndex = getLaneIndex(car);
+	int quadrants[QUADRANT_COUNT];
+	int quadrantCount = getStopSignRequiredQuadrants(car, quadrants);
+
+	// Enter lane
+	lock(&sign->laneLock[laneIndex]);
+	int count = sign->enterCount[laneIndex];
 	enterLane(car, lane);
-	long index = sign->enterCount[lane_index];
-	sign->enterCount[lane_index]++;
-	unlock(&sign->laneLock[lane_index]);
+	sign->enterCount[laneIndex]++;
+	unlock(&sign->laneLock[laneIndex]);
 
-	int path[3];
-	int length = getStopSignRequiredQuadrants(car, path);
+	// move through the quadrants
+	lock(&sign->quadLock);
+	// check if there are any cars in the quadrants to move through
+	while(check_road_clear(quadrants, quadrantCount, sign)){
+		condWait(&sign->quadCond, &sign->quadLock);
+	}
+	// update the number of cars in the quadrants
+	for(int i=0; i<quadrantCount; i++){
+		sign->quadCount[quadrants[i]]++;
+	}
+	unlock(&sign->quadLock);
 
-	lock(&sign->enterLock[lane_index]);
-	lock(&sign->occupyLock);
-	while (canPass(path, length, sign->occupy) == 0) {
-		condWait(&sign->waitCond, &sign->occupyLock);
-	}
-	for (int i = 0; i<length; i++) {
-		sign->occupy[path[i]] = 1;
-	}
-	unlock(&sign->occupyLock);
 	goThroughStopSign(car, &sign->base);
-	lock(&sign->occupyLock);
-	for (int i = 0; i<length; i++) {
-		sign->occupy[path[i]] = 0;
-	}
-	condBroadcast(&sign->waitCond);
-	unlock(&sign->occupyLock);
-	unlock(&sign->enterLock[lane_index]);
 
-	lock(&sign->laneLock[lane_index]);
-	while (index != sign->exitCount[lane_index]) {
-		condWait(&sign->exitCond[lane_index], &sign->laneLock[lane_index]);
+	lock(&sign->quadLock);
+	// update the number of cars in the quadrants
+	for(int i=0; i<quadrantCount; i++){
+		sign->quadCount[quadrants[i]]--;
+	}
+	// signal the cars waiting for entering the quadrants
+	condBroadcast(&sign->quadCond);
+	unlock(&sign->quadLock);
+
+	lock(&sign->laneLock[laneIndex]);
+	// check the order for exiting
+	while(sign->exitCount[laneIndex]!= count){
+		condWait(&sign->laneCond[laneIndex], &sign->laneLock[laneIndex]);
 	}
 	exitIntersection(car, lane);
-	sign->exitCount[lane_index]++;
-	condBroadcast(&sign->exitCond[lane_index]);
-	unlock(&sign->laneLock[lane_index]);
+	sign->exitCount[laneIndex]++;
+	condBroadcast(&sign->laneCond[laneIndex]);
+	unlock(&sign->laneLock[laneIndex]);
 }

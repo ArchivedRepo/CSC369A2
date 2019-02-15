@@ -6,7 +6,6 @@
 */
 #include "car.h"
 #include "stopSign.h"
-#include <pthread.h>
 
 /**
 * @brief Structure that you can modify as part of your solution to implement
@@ -27,21 +26,20 @@ typedef struct _SafeStopSign {
 	StopSign base;
 
 	// TODO: Add any members you need for synchronization here.
-	// Record whether the quadrant is occupied. 1 denote occupied, 0 otherwist.
-	int occupy[QUADRANT_COUNT];
-	//Mutex to protext the occupy array
-	pthread_mutex_t occupyLock;
-	//Mutexes used to synchronize the cars enter the lanes
+	//Mutexes used to synchronize the cars entering the lanes
 	pthread_mutex_t laneLock[DIRECTION_COUNT];
-	//Mutexes used to enter the stop sign from different direction
-	pthread_mutex_t enterLock[DIRECTION_COUNT];
-	pthread_cond_t waitCond;
+	//Mutexes used to synchronize modifying number of cars staying in a quadrant
+	pthread_mutex_t	quadLock;
 
-	//Count the number of cars enter from every direction
+	pthread_cond_t quadCond;
+	pthread_cond_t laneCond[DIRECTION_COUNT];
+
+	// number of cars entered a lane
 	int enterCount[DIRECTION_COUNT];
+	//number of cars exited a lane
 	int exitCount[DIRECTION_COUNT];
-	//Conditional variable for cars to exit stop sign in order
-	pthread_cond_t exitCond[DIRECTION_COUNT];
+	// number of cars staying in a quadrant
+	int quadCount[QUADRANT_COUNT];
 
 } SafeStopSign;
 
@@ -67,3 +65,13 @@ void destroySafeStopSign(SafeStopSign* sign);
 * @param sign pointer to the stop sign intersection.
 */
 void runStopSignCar(Car* car, SafeStopSign* sign);
+
+
+/**
+* @brief Checks if there are any cars moving through the quadrants.
+*
+* @param quadrants pointer the list of quadrants a car will move through.
+* @param quadrantCount the length of quadrants.
+* @param sign pointer to the stop sign a car will move through.
+*/
+int check_road_clear(int *quadrants, int quadrantCount, SafeStopSign* sign);
